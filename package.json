@@ -1,0 +1,20 @@
+{
+  "name": "nmap",
+  "version": "1.0.0",
+  "main": "index.js",
+  "license": "MIT",
+  "scripts": {
+    "start": "nodemon index.js"
+  },
+  "dependencies": {
+    "body-parser": "^1.20.2",
+    "dotenv": "^16.0.3",
+    "express": "^4.18.2",
+    "jsonwebtoken": "^9.0.0",
+    "mongoose": "^7.1.1",
+    "morgan": "^1.10.0",
+    "node-nmap": "^4.0.0",
+    "nodemon": "^2.0.22"
+  },
+  "type": "module"
+}
