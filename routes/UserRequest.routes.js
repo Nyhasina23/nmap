@@ -26,44 +26,47 @@ export const MakeUserRequest = (app) => {
   // SCAN REQUEST WITH NMAP
   app.post("/request/scan", authenticateToken, (req, res) => {
     try {
-      const { host, scanType, maxRetries, hostTimeout, owner } = req.body;
+      const { host, scanType, maxRetries, hostTimeout, port , owner } = req.body;
 
-      const options = [
+      const nmapProcess = spawn("nmap", [
         scanType,
-        "--max-retries",
+        " --max-retries ",
         maxRetries,
-        "--host-timeout",
+        " --host-timeout ",
         hostTimeout,
-      ];
-
-      const nmapProcess = spawn("nmap", options.concat(host));
+        " -p ",
+        port,
+        host,
+      ]);
 
       let scanResult = "";
 
       nmapProcess.stdout.on("data", async (data) => {
-        scanResult = data.toString();
-
-        // SAVE USER REQUEST TO HISTORY
-        const NewUserModelRequest = new UserModelRequest({
-          host,
-          scanType,
-          maxRetries,
-          hostTimeout,
-          owner,
-        });
-        await NewUserModelRequest.save();
-
-        // SAVE REQUEST IN DATABASE
-        await createRequest(scanResult);
-        res.status(200).send({ message: "Request saved successfully" });
+        scanResult += data.toString();
       });
 
-      nmapProcess.on("close", (code) => {
+      nmapProcess.on("close", async (code) => {
         if (code === 0) {
-          console.log(scanResult);
-          res.status(200).send(scanResult);
+
+
+          // SAVE USER REQUEST TO HISTORY
+          const NewUserModelRequest = new UserModelRequest({
+            host,
+            scanType,
+            maxRetries,
+            hostTimeout,
+            port,
+            owner,
+          });
+          await NewUserModelRequest.save();
+
+          // SAVE REQUEST IN DATABASE
+          await createRequest(scanResult);
+          res.status(200).send({ message: "Request saved successfully" });
+
         } else {
-          console.log("error");
+          res.status(500).send({ message: "Error when scan" });
+          return;
         }
       });
     } catch (error) {

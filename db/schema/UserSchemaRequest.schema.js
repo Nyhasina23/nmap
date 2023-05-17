@@ -17,6 +17,10 @@ const UserRequestSchema = mongoose.Schema({
     type: String,
     required: false,
   },
+  port: {
+    type: String,
+    required: false,
+  },
   owner: {
     type: mongoose.Schema.Types.ObjectId,
     ref: "users",
