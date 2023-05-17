@@ -1,11 +1,12 @@
 import { createRequest } from "./Request.routes.js";
+import { spawn } from "child_process";
 import nmap from "node-nmap";
 import UserModelRequest from "../db/models/UserRequest.model.js";
 import { ObjectId } from "mongodb";
 import { authenticateToken } from "../middlewares/authenticateToken.js";
 
 export const MakeUserRequest = (app) => {
-  // GET USER OWNER REQUEST
+  // GET USER OWNER REQUEST - HISTORY OF USER REQUEST
   app.get("/request/user", authenticateToken, async (req, res) => {
     try {
       const userRequest = await UserModelRequest.aggregate([
@@ -22,25 +23,27 @@ export const MakeUserRequest = (app) => {
     }
   });
 
-  // SCAN REQUEST
+  // SCAN REQUEST WITH NMAP
   app.post("/request/scan", authenticateToken, (req, res) => {
     try {
       const { host, scanType, maxRetries, hostTimeout, owner } = req.body;
 
-      const options = {
-        flags: [
-          scanType,
-          "--max-retries",
-          maxRetries.toString(),
-          "--host-timeout",
-          hostTimeout.toString(),
-        ],
-      };
+      const options = [
+        scanType,
+        "--max-retries",
+        maxRetries,
+        "--host-timeout",
+        hostTimeout,
+      ];
 
-      const nmapScan = new nmap.NmapScan(host, options.flags);
+      const nmapProcess = spawn("nmap", options.concat(host));
 
-      nmapScan.on("complete", async (data) => {
-        // SAVE USER REQUEST
+      let scanResult = "";
+
+      nmapProcess.stdout.on("data", async (data) => {
+        scanResult = data.toString();
+
+        // SAVE USER REQUEST TO HISTORY
         const NewUserModelRequest = new UserModelRequest({
           host,
           scanType,
@@ -48,26 +51,21 @@ export const MakeUserRequest = (app) => {
           hostTimeout,
           owner,
         });
-
         await NewUserModelRequest.save();
 
         // SAVE REQUEST IN DATABASE
-        await createRequest(
-          data[0].hostname,
-          data[0].ip,
-          data[0]?.mac,
-          data[0].openPorts,
-          data[0]?.osNmap
-        );
-
-        res.status(200).send({ message: "Data request saved successfully" });
+        await createRequest(scanResult);
+        res.status(200).send({ message: "Request saved successfully" });
       });
 
-      nmapScan.on("error", () => {
-        res.status(500).send({ message: `Error when scanning ${host}` });
+      nmapProcess.on("close", (code) => {
+        if (code === 0) {
+          console.log(scanResult);
+          res.status(200).send(scanResult);
+        } else {
+          console.log("error");
+        }
       });
-
-      nmapScan.startScan();
     } catch (error) {
       console.log("error ", error);
       res.status(500).send({ message: "Error when making scan request" });

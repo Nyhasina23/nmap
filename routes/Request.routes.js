@@ -1,20 +1,16 @@
 import RequestModel from "../db/models/Request.model.js";
 import { authenticateToken } from "../middlewares/authenticateToken.js";
 
-export const createRequest = async (hostname, ip, mac, openPorts, osNmap) => {
-  const newRequest = new RequestModel({
-    hostname,
-    ip,
-    mac: mac ? mac : undefined,
-    openPorts,
-    osNmap: osNmap ? osNmap : undefined,
-  });
-
+// CREATE REQUEST FUNCTION
+export const createRequest = async (scanResult) => {
+  const newRequest = new RequestModel({ scanResult });
   await newRequest.save();
-};
+}; 
+
 
 export const MakeRequests = async (app) => {
-  // GET ALL REQUEST
+
+  // GET ALL REQUEST PASSED
   app.get("/requests", authenticateToken, async (req, res) => {
     try {
       const requests = await RequestModel.find();

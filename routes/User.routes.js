@@ -2,6 +2,8 @@ import UserModel from "../db/models/User.model.js";
 import { generateToken } from "../utils/generateJWTToken.js";
 
 export const UserAuthentication = (app) => {
+
+  // USER SIGNUP 
   app.post("/signup", async (req, res) => {
     try {
       const { username, password } = req.body;
@@ -20,6 +22,7 @@ export const UserAuthentication = (app) => {
     }
   });
 
+  // USER SIGNIN
   app.post("/signin", async (req, res) => {
     const { username, password } = req.body;
 
